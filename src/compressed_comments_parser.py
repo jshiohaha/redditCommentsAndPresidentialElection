@@ -3,10 +3,6 @@ import bz2
 import json
 import csv
 
-from datetime import datetime
-from dateutil import tz
-from pathlib import Path
-
 ''' Example json object from reddit file...
 
     {  
