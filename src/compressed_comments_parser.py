@@ -66,7 +66,7 @@ def main():
         # author is moderator if is 'AutoModerator'
         # author name contains bot
         author = data["author"].lower()
-        if author == '[deleted]' or author is 'AutoModerator' or "bot" in author: 
+        if author == '[deleted]' or author == 'automoderator' or "bot" in author: 
             continue
 
         subreddit = data["subreddit"]
