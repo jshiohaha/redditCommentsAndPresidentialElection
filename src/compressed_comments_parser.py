@@ -29,21 +29,16 @@ import csv
     }
 '''
 
-def main():
-    subbreddits = '../Data/PoliticalSubreddits.csv'
-    list_of_subreddits = []
+def filter_compressed_comments_file(input_file, output_file):
+    list_of_subreddits = create_political_subreddits_list('../Data/PoliticalSubreddits.csv')
     with open(subbreddits) as file:
         lines = file.readlines()
         list_of_subreddits = lines[0].split(',')
 
-    filename = '../Data/SampleData/RC_2007-01.bz2'
-
-    bz_file = bz2.BZ2File(filename, 'rb', 1000000)
-
-    output_filename = '../Output/output.json'
-    filtered_file = open(output_filename, 'w')
-
+    filtered_file = open(output_file, 'w')
+    bz_file = bz2.BZ2File(input_file, 'rb', 1000000)
     total_obj, written_obj = 0, 0
+
     while True:
         total_obj += 1
         line = bz_file.readline().decode('utf8')
@@ -53,17 +48,14 @@ def main():
 
         data = json.loads(line)
 
-        # oct 26 utc date: 1477501200
-        # november 23 utc date: 1479924000
+        # oct 26 utc date: 1477501200, november 23 utc date: 1479924000
         start = 1477501200
         end = 1479924000
         created_on = data['created_utc']
         if created_on < start or created_on > end:
             continue
 
-        # author will be [deleted] if the comment was deleted
-        # author is moderator if is 'AutoModerator'
-        # author name contains bot
+        # do not save if author = [deleted], 'AutoModerator', contains bot
         author = data['author'].lower()
         if author == '[deleted]' or author == 'automoderator' or 'bot' in author: 
             continue
@@ -92,5 +84,71 @@ def main():
     bz_file.close()
     filtered_file.close()
 
-if __name__ == '__main__':
-    main()
+
+def create_political_subreddits_list(input_file):
+    subbreddits = "PoliticalSubreddits.csv"
+    list_of_subreddits = []
+
+    with open(subbreddits) as file:
+        lines = file.readlines()
+        list_of_subreddits = lines[0].split(',')
+
+    return list_of_subreddits
+
+
+def parse_compressed_moderator_file(input_file):
+    '''
+        input_file is the path to the moderators.gz file,
+        which is the compressed file containing the list
+        of all known moderators on reddit across all
+        subreddits.
+    '''
+    list_of_subreddits = create_political_subreddits_list('../Data/PoliticalSubreddits.csv')
+    gz_file = gzip.open(input_file, 'rb')
+    moderator_authors = []
+
+    while True:
+        line = gz_file.readline()
+
+        if len(line) == 0:
+            break
+
+        data = json.loads(line)
+
+        subreddit = data['subreddit']
+        if subreddit not in list_of_subreddits:
+            continue
+
+        for j in data['moderators']:
+            moderator_authors.append(j['name'])
+
+    gz_file.close()
+    return moderator_authors
+
+
+def filter_known_moderators_from_comments_file(input_file, output_file):
+    moderator_authors = parse_compressed_moderator_file('../Data/moderators.gz')
+    filtered_file = open(output_file, "w")
+
+    total_obj = 0
+    written_obj = 0
+
+    with open(input_file) as f:
+        for line in f:
+            data = json.loads(line)
+            total_obj += 1
+
+            body = data['body']
+            author = data['author']
+            if author in moderator_authors and (('comment' in body or 'submission' in body) and 'removed' in body):
+                continue
+
+            json.dump(data, filtered_file)
+            filtered_file.write('\n')
+
+            written_obj += 1
+
+    filtered_file.close()
+    print('Total objects: {}'.format(total_obj))
+    print('Written objects: {}'.format(written_obj))
+
