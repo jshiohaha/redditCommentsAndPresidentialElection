@@ -37,8 +37,10 @@ def split_data_by_time(input_file, output_file, start, end):
     print('Written objects: {}'.format(written_obj))
     filtered_file.close()
 
-# types: neg, neu, pos, compound
-def split_data_by_sentiment_range(input_file, output_file, type, low, high):
+
+def split_data_by_sentiment_range(input_file, output_file, type, low=-1, high=1):
+    """ Types include: neg, neu, pos, compound"""
+
     file = open(input_file, 'r')
     filtered_file = open(output_file, 'w')
 
