@@ -95,7 +95,7 @@ from nltk.sentiment.vader import SentimentIntensityAnalyzer
 
 We tried to use ParallelDots for [Emotional Analysis Tool](https://www.paralleldots.com),  BUT there is a super strict api limit of 1000 api hits a day.
 
-Thus, we started using the `TidyText` package in R.
+Thus, we started using the [TidyText](https://www.tidytextmining.com/) package in R.
 
 **[TODO]** Fill the rest of this out ...
 
@@ -142,6 +142,10 @@ From the commit logs we can easily see that the [first version](https://github.c
 
 ###### MACHINE LEARNING
 
+**N-Grams**
+
+The basic point of n-grams is that they capture the language structure from the statistical point of view, like what letter or word is likely to follow the given one. The longer the n-gram (the higher the n), the more context you have to work with. Optimum length really depends on the application – if your n-grams are too short, you may fail to capture important differences. On the other hand, if they are too long, you may fail to capture the “general knowledge” and only stick to particular cases.
+
 They are basically a set of co-occuring words within a given window and when computing the n-grams you typically move one word forward (although you can move X words forward in more advanced scenarios). For example, for the sentence "The cow jumps over the moon". If N=2 (known as bigrams), then the ngrams would be:
 
 * the cow
@@ -149,3 +153,12 @@ They are basically a set of co-occuring words within a given window and when com
 * jumps over
 * over the
 * the moon
+
+**Links**
+[Using Bigrams to Enhance Text Classification](http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.2.1938&rep=rep1&type=pdf)
+
+**Difference between Naive Bayes and Multinomial Naive Bayes**
+
+[Text classification using NB](https://medium.com/@theflyingmantis/text-classification-in-nlp-naive-bayes-a606bf419f8c)
+
+[Link](https://stats.stackexchange.com/questions/33185/difference-between-naive-bayes-multinomial-naive-bayes#answer-34002)
