@@ -3,7 +3,7 @@
 Introduction
 Contents of this README
 
-View the presentation for this project [here](https://docs.google.com/presentation/d/18LeMAXgCU4imIlOoZsTXb4cAcyLFKoRpQbY1pBcA_uU/edit?usp=sharing).
+View the presentation for this project [here](http://bit.ly/2JbFA1S).
 
 ## Process Outline
 
