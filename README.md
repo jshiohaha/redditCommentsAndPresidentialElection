@@ -1,6 +1,6 @@
 # Reddit Political Subreddit Comments during the 2016 U.S. Presidential Election
 
-View the presentation for this project [here](https://docs.google.com/presentation/d/18LeMAXgCU4imIlOoZsTXb4cAcyLFKoRpQbY1pBcA_uU/edit?usp=sharing).
+View the presentation for this project [here](http://bit.ly/2JbFA1S).
 
 ##### TODO action items
 - Lemmatizer function in NLTK?
