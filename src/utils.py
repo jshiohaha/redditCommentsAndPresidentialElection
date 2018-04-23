@@ -10,6 +10,42 @@ import nltk
 
 lmt = WordNetLemmatizer()
 
+class NRCReader:
+    def __init__(self, NRCAddress="NRC-emotion-lexicon-wordlevel-alphabetized-v0.92.txt"):
+        self.nrc_address = NRCAddress
+        self.data = {}
+
+    def load(self):
+        with open(self.nrc_address, "r", encoding="utf-8") as nrc_file:
+            for line in nrc_file.readlines():
+                splited = line.replace("\n", "").split("\t")
+                word, emotion, value = splited[0], splited[1], splited[2]
+                if word in self.data.keys():
+                    self.data[word].append((emotion, int(value)))
+                else:
+                    self.data[word] = [(emotion, int(value))]
+
+    def vectorize(self, sentence:list):
+        out = {}
+        for word in sentence:
+            if word in self.data.keys():
+                for item in self.data[word]:
+                    if word in out.keys():
+                        out[word] += (item[0], item[1])
+                    else:
+                        out[word] = (item[0], item[1])
+        return out
+
+    def get_emotion(self, word, emotion):
+        emotions = self.data[word]
+        for emot in emotions:
+            if emot[0] == emotion:
+                return emot[1]
+
+    def get_emotions(self, word):
+        emotions = self.data[word]
+        return emotions
+
 # Splits data by UTC time (number of seconds that have elapsed since January 1, 1970) - in GMT, not local time
 #   1 hour = 3600 seconds
 #   1 day  = 86400 seconds
@@ -344,39 +380,3 @@ def grab_n_lines(input_file, n=1000):
         counter += 1
 
     print('Done')
-
-class NRCReader:
-    def __init__(self, NRCAddress="NRC-emotion-lexicon-wordlevel-alphabetized-v0.92.txt"):
-        self.nrc_address = NRCAddress
-        self.data = {}
-
-    def load(self):
-        with open(self.nrc_address, "r", encoding="utf-8") as nrc_file:
-            for line in nrc_file.readlines():
-                splited = line.replace("\n", "").split("\t")
-                word, emotion, value = splited[0], splited[1], splited[2]
-                if word in self.data.keys():
-                    self.data[word].append((emotion, int(value)))
-                else:
-                    self.data[word] = [(emotion, int(value))]
-
-    def vectorize(self, sentence:list):
-        out = {}
-        for word in sentence:
-            if word in self.data.keys():
-                for item in self.data[word]:
-                    if word in out.keys():
-                        out[word] += (item[0], item[1])
-                    else:
-                        out[word] = (item[0], item[1])
-        return out
-
-    def get_emotion(self, word, emotion):
-        emotions = self.data[word]
-        for emot in emotions:
-            if emot[0] == emotion:
-                return emot[1]
-
-    def get_emotions(self, word):
-        emotions = self.data[word]
-        return emotions
