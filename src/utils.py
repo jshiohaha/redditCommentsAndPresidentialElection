@@ -1,12 +1,18 @@
 import sys, json, string, re, csv, operator
 from collections import Counter
 import pprint
+from nltk.corpus import stopwords
+from nltk.stem.wordnet import WordNetLemmatizer
+from nltk import SnowballStemmer
+import nltk
+
+lmt = WordNetLemmatizer()
 
 # Splits data by UTC time (number of seconds that have elapsed since January 1, 1970) - in GMT, not local time
 #   1 hour = 3600 seconds
 #   1 day  = 86400 seconds
 #   1 week = 604800 seconds
-# 
+#
 # Examples:
 #   October 26, 2016, 00:00:00:  1477440000
 #   November 23, 2016, 23:59:59: 1479945599
@@ -97,11 +103,11 @@ def load_stopwords():
 
 
 def extract_text_from_comments(input_file, filter=False):
-    ''' 
+    '''
         Take an input file of json comment objects and parse
         out all of the text.
 
-        Setting filter to True will convert all text to lower case, 
+        Setting filter to True will convert all text to lower case,
         load stop words from stopwords.csv, and do a manual filtering
         to remove stopwords, punctuation, and numbers from text.
         If not, all text will be outputted.
@@ -113,7 +119,6 @@ def extract_text_from_comments(input_file, filter=False):
     file = open(input_file, 'r')
 
     total_obj = 0
-    written_obj = 0
 
     if filter:
         stop_words_arr = load_stopwords()
@@ -130,7 +135,7 @@ def extract_text_from_comments(input_file, filter=False):
             break
 
         total_obj += 1
-        
+
         body = json.loads(line)['body']
 
         if filter:
@@ -146,8 +151,6 @@ def extract_text_from_comments(input_file, filter=False):
 
         text_arr.append(body)
 
-    output.close()
-
     if filter:
         pre_stop_removal = len(text_arr)
         text_arr = [el for el in text_arr if el not in stop_words_arr and len(el) > 0]
@@ -158,21 +161,31 @@ def extract_text_from_comments(input_file, filter=False):
     return text_arr
 
 
-def get_top_n_words_from_text(text_arr, n):
+def get_top_n_words_from_text(text_arr, n=-1):
     '''
-        text_arr is an array of strings that will be converted to 
+        text_arr is an array of strings that will be converted to
         a dictionary sorted by the integer value representing
         how many times each unique string appears in the array.
 
         Returns top n occuring strings as an array of tuples in
         the form (string, num_occurrences).
     '''
-    keys = Counter(text_arr).keys()
-    values = Counter(text_arr).values()
-    dictionary = dict(zip(keys, values))
+    keys = list(Counter(text_arr).keys())
+    values = list(Counter(text_arr).values())
+    dictionary = dict()
+    for i in range(len(keys)):
+        dictionary[keys[i]] = values[i]
+
+    keys = None
+    values = None
+
     print("Found {} unique words.".format(len(dictionary)))
 
     sorted_words_arr = sorted(dictionary.items(), key=operator.itemgetter(1), reverse=True)
+
+    if n < 0:
+        return sorted_words_arr[:(len(dictionary))]
+
     return sorted_words_arr[:n]
 
 
@@ -182,3 +195,120 @@ def map_sentiment_to_word(x):
         'neu': 'neutral',
         'neg': 'negative'
     }[x]
+
+
+def match_words_with_emotion(input_file):
+    text_arr = extract_text_from_comments(input_file, False)
+    print("Lemmatizing sentences...")
+    text_arr = list(map(nat_lang_sentence, text_arr))
+    print("Lemmatized the sentences")
+    all_words = get_top_n_words_from_text(text_arr)
+    text_arr = None
+    nrc = NRCReader()
+    nrc.load()
+
+    words = [el for el in all_words if el[0] in nrc.data.keys()]
+    print("{} out of {} words were found within NRC".format(len(words), len(all_words)))
+
+    filtered_file = open("words_with_count_and_emotions.json", 'w')
+
+    # nrc_emotions = ['anger', 'anticipation', 'disgust', 'fear', 'joy',
+    #                 'negative', 'positive', 'sadness', 'surprise', 'trust']
+
+    # for sentence in text_arr:
+    #     vector = nrc.vectorize(sentence)
+    #     print(vector)
+
+    print("Finding emotions for words")
+
+    for w in words:
+        output_data = {
+            'word': w[0],
+            'count': w[1],
+            'emotions': {
+                'anger': nrc.get_emotion(w[0], 'anger'),
+                'anticipation': nrc.get_emotion(w[0], 'anticipation'),
+                'disgust': nrc.get_emotion(w[0], 'disgust'),
+                'fear': nrc.get_emotion(w[0], 'fear'),
+                'joy': nrc.get_emotion(w[0], 'joy'),
+                'negative': nrc.get_emotion(w[0], 'negative'),
+                'positive': nrc.get_emotion(w[0], 'positive'),
+                'sadness': nrc.get_emotion(w[0], 'sadness'),
+                'surprise': nrc.get_emotion(w[0], 'surprise'),
+                'trust': nrc.get_emotion(w[0], 'trust'),
+            },
+        }
+
+        json.dump(output_data, filtered_file)
+        filtered_file.write('\n')
+
+    print("Done")
+    filtered_file.close()
+
+
+def nat_lang_word(word):
+    '''Word stemmer; find the root of the word. E.g. 'dogs' becomes 'dog'''
+    return lmt.lemmatize(word)
+
+
+def nat_lang_sentence(sentence):
+    '''Word stemmer; find the root of the word. E.g. 'dogs' becomes 'dog'''
+    new_words = list(map(nat_lang_word, sentence.split(' ')))
+    return ' '.join(new_words)
+
+
+def grab_n_lines(input_file, n=1000):
+    file = open(input_file, 'r')
+    new_file = open("data-{}-lines.json".format(n), 'w')
+
+    counter = 0
+    while counter < n:
+        line = file.readline()
+
+        if len(line) == 0:
+            break
+
+        data = json.loads(line)
+
+        json.dump(data, new_file)
+        new_file.write('\n')
+
+        counter += 1
+
+    print('Done')
+
+class NRCReader:
+    def __init__(self, NRCAddress="NRC-emotion-lexicon-wordlevel-alphabetized-v0.92.txt"):
+        self.nrc_address = NRCAddress
+        self.data = {}
+
+    def load(self):
+        with open(self.nrc_address, "r", encoding="utf-8") as nrc_file:
+            for line in nrc_file.readlines():
+                splited = line.replace("\n", "").split("\t")
+                word, emotion, value = splited[0], splited[1], splited[2]
+                if word in self.data.keys():
+                    self.data[word].append((emotion, int(value)))
+                else:
+                    self.data[word] = [(emotion, int(value))]
+
+    def vectorize(self, sentence:list):
+        out = {}
+        for word in sentence:
+            if word in self.data.keys():
+                for item in self.data[word]:
+                    if word in out.keys():
+                        out[word] += (item[0], item[1])
+                    else:
+                        out[word] = (item[0], item[1])
+        return out
+
+    def get_emotion(self, word, emotion):
+        emotions = self.data[word]
+        for emot in emotions:
+            if emot[0] == emotion:
+                return emot[1]
+
+    def get_emotions(self, word):
+        emotions = self.data[word]
+        return emotions
