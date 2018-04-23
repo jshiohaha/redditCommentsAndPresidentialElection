@@ -206,6 +206,7 @@ def extract_text_from_comments(input_file, filter=False):
         pre_stop_removal = len(text_arr)
         text_arr = [el for el in text_arr if el not in stop_words_arr and len(el) > 0]
         post_stop_removal = len(text_arr)
+        print("Removed {} words by removing stop words. Ending with {} words.".format(pre_stop_removal-post_stop_removal, post_stop_removal))
 
     return text_arr, times_arr
 
