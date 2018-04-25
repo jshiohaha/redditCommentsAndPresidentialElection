@@ -8,8 +8,6 @@ from nltk.stem.wordnet import WordNetLemmatizer
 from nltk import SnowballStemmer
 import nltk
 
-lmt = WordNetLemmatizer()
-
 
 class NRCReader:
     def __init__(self, NRCAddress="../Data/NRC-emotion-lexicon-wordlevel-alphabetized-v0.92.txt"):
@@ -370,6 +368,7 @@ def match_words_with_emotion(input_file, filter=False):
 
 def nat_lang_word(word):
     '''Word stemmer; find the root of the word. E.g. 'dogs' becomes 'dog'''
+    lmt = WordNetLemmatizer()
     return lmt.lemmatize(word)
 
 
