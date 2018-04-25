@@ -87,16 +87,23 @@ def print_data(input_file, num_lines):
         print(json.loads(line))
 
 
-def load_stopwords():
+def read_csv(input_file, header=True, append_data=True):
     results = []
-    with open('../Data/stopwords.csv') as csvfile:
+    with open(input_file) as csvfile:
         reader = csv.reader(csvfile)
+
+        if header is False:
+            next(reader)
+
         for row in reader:
-            results.extend(row)
+            if append_data:
+                results.append(row)
+            else:
+                results.extend(row)
     return results
 
 
-def extract_text_from_comments(input_file, filter=False):
+def extract_text_from_comments(input_file, filter=False, specific_subreddit=None):
     ''' 
         Take an input file of json comment objects and parse
         out all of the text.
@@ -115,14 +122,16 @@ def extract_text_from_comments(input_file, filter=False):
     written_obj = 0
 
     if filter:
-        stop_words_arr = load_stopwords()
+        stop_words_arr = read_csv("../Data/stopwords.csv", header=False, append_data=False)
 
         punctuation_translator = str.maketrans(' ', ' ', string.punctuation)
+        url_regex = re.compile(r'\[?\(?https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)\]?\)?')
         num_regex = re.compile(r'[0-9]+')
         whitespace_chars_regex = re.compile(r'[\n\r\t]+')
 
     text_arr = []
     times_arr = []
+    sentiment_arr = []
     while True:
         line = file.readline()
 
@@ -139,25 +148,38 @@ def extract_text_from_comments(input_file, filter=False):
         body = data['body']
         time = data['created_utc']
 
-        if filter:
-            body = body.lower()
-            # Remove all numbers from comments
-            body = num_regex.sub('', body)
+        subreddit = data['subreddit']
+        sentiment = data['sentiment']
 
-            # Remove all punctuation from comments
-            body = body.translate(punctuation_translator)
+        match = True
+        if specific_subreddit:
+            if subreddit != specific_subreddit:
+                match = False
 
-            # Remove all special whitespace characters
-            body = whitespace_chars_regex.sub(' ', body)
+        if match:
+            if filter:
+                body = body.lower()
 
-            body = ' '.join([el for el in body.split(' ') if el not in stop_words_arr and len(el) > 0])
+                # Remove all numbers from comments
+                body = url_regex.sub('', body)
+                body = num_regex.sub('', body)
 
-        text_arr.append(body)
-        times_arr.append(time)
-    return text_arr, times_arr
+                # Remove all punctuation from comments
+                body = body.translate(punctuation_translator)
+
+                # Remove all special whitespace characters
+                body = whitespace_chars_regex.sub(' ', body)
+
+                body = ' '.join([el for el in body.split(' ') if el not in stop_words_arr and len(el) > 0])
+
+            text_arr.extend(body.split(' '))
+            times_arr.append(time)
 
 
-def get_top_n_words_from_text(text_arr, n):
+    return text_arr, times_arr, sentiment_arr
+
+
+def get_top_n_words_from_text(text_arr, sentiment_arr, n):
     '''
         text_arr is an array of strings that will be converted to 
         a dictionary sorted by the integer value representing
@@ -166,15 +188,13 @@ def get_top_n_words_from_text(text_arr, n):
         Returns top n occuring strings as an array of tuples in
         the form (string, num_occurrences, times).
     '''
-    times = times_arr if times_arr is not None else None
-
-    keys = Counter(text_arr).keys()
-    values = Counter(text_arr).values()
+    keys = list(Counter(text_arr).keys())
+    values = list(Counter(text_arr).values())
 
     dictionary = dict(zip(keys, values))
     print('Found {} unique words.'.format(len(dictionary)))
 
-    sorted_words_arr = sorted(dictionary.items(), key=operator.itemgetter(1), reverse=True)
+    sorted_words_arr = sorted(dictionary, key=operator.itemgetter(1), reverse=True)
     return sorted_words_arr[:n]
 
 

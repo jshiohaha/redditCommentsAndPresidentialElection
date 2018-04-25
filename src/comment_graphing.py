@@ -5,10 +5,11 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
+import pygal 
 from PIL import Image
 from collections import Counter
 from wordcloud import WordCloud, STOPWORDS
-from utils import extract_text_from_comments, aggregate_comments_by_day
+from utils import extract_text_from_comments, aggregate_comments_by_day, read_csv
 
 
 def plot_word_cloud(input_file, image_input_file):
@@ -41,7 +42,52 @@ def plot_word_cloud(input_file, image_input_file):
     plt.show()
 
 
-def plot_heatmap_of_words(input_file, popular_words):
+def plot_sentiment_overtime(input_file, output_file):
+    comments_by_subbredit = dict()
+    data = read_csv(input_file, header=True, append_data=True)
+
+    comments_by_subbredit = dict(zip(data[0], [[] for _ in range(len(data[0]))]))
+    keys = list(comments_by_subbredit.keys())
+    dates = []
+
+    for i in range(1, len(data)):
+        for k in range(0, len(keys)):
+            if k < 1 :
+                dates.append(data[i][k])
+                print(data[i][k])
+            else:
+                comments_by_subbredit[keys[k]].append(float(data[i][k]))
+
+    line_chart = pygal.Line(x_label_rotation=20)
+    line_chart.title = 'Average Compound Sentiment Score by Subreddit'
+
+    # dates = [ dates[i].split(" ")[1] if i % 5 == 0 else " " for i in range(len(dates))]
+    dates = [ dates[i] if i % 2 == 0 else " " for i in range(len(dates))]
+
+    line_chart.x_labels = dates
+
+    for k, v in comments_by_subbredit.items():
+        if k == 'Date':
+            continue
+
+        line_chart.add(str(k), list(v))
+
+    line_chart.render_to_file(output_file)
+
+
+def plot_word_frequencies_bar_chart(input_file):
+
+    line_chart = pygal.Bar()
+    line_chart.title = 'Browser usage evolution (in %)'
+    line_chart.x_labels = map(str, range(2002, 2013))
+    line_chart.add('Firefox', [None, None, 0, 16.6,   25,   31, 36.4, 45.5, 46.3, 42.8, 37.1])
+    line_chart.add('Chrome',  [None, None, None, None, None, None,    0,  3.9, 10.8, 23.8, 35.3])
+    line_chart.add('IE',      [85.8, 84.6, 84.7, 74.5,   66, 58.6, 54.7, 44.8, 36.2, 26.6, 20.1])
+    line_chart.add('Others',  [14.2, 15.4, 15.3,  8.9,    9, 10.4,  8.9,  5.8,  6.7,  6.8,  7.5])
+    line_chart.render_to_file('../Images/output.svg')
+
+
+def plot_heatmap_of_words(input_file, popular_words, specific_subreddit=None):
     '''
 
         Example of popular_words param:
@@ -50,8 +96,8 @@ def plot_heatmap_of_words(input_file, popular_words):
                          'years','good','president','country','voted','make','party','won',
                          'candidate','shit','america','states','fuck','dnc','better','lost','obama']
     '''
-    text, times = extract_text_from_comments(input_file, filter=True)
-    comments_and_dates_by_day = aggregate_comments_by_day(text, times, group_by="days", group_by_const=1)
+    text, times = extract_text_from_comments(input_file, filter=True, specific_subreddit=specific_subreddit)
+    comments_and_dates_by_day = aggregate_comments_by_day(text, times, group_by="hours", group_by_const=1)
 
     date = list()
     word = list()
