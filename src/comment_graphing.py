@@ -22,6 +22,7 @@ def plot_word_cloud(input_file, image_input_file):
 
     stopwords = set(STOPWORDS)
     stopwords.add("said")
+    stopwords.add("source")
 
     wc = WordCloud(background_color="white", max_words=2000, mask=image_mask,
                    stopwords=stopwords)
