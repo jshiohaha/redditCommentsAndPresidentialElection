@@ -12,10 +12,9 @@ from nltk.tokenize import word_tokenize
 from nltk.stem.wordnet import WordNetLemmatizer
 import nltk as nltk
 
-lmt = WordNetLemmatizer()
 
 class NRCReader:
-    def __init__(self, NRCAddress="NRC-emotion-lexicon-wordlevel-alphabetized-v0.92.txt"):
+    def __init__(self, NRCAddress="../Data/NRC-emotion-lexicon-wordlevel-alphabetized-v0.92.txt"):
         self.nrc_address = NRCAddress
         self.data = {}
 
@@ -49,6 +48,7 @@ class NRCReader:
     def get_emotions(self, word):
         emotions = self.data[word]
         return emotions
+
 
 # Splits data by UTC time (number of seconds that have elapsed since January 1, 1970) - in GMT, not local time
 #   1 hour = 3600 seconds
@@ -141,17 +141,24 @@ def print_data(input_file, num_lines):
         print(json.loads(line))
 
 
-def load_stopwords():
+def read_csv(input_file, header=True, append_data=True):
     results = []
-    with open('../Data/stopwords.csv') as csvfile:
+    with open(input_file) as csvfile:
         reader = csv.reader(csvfile)
+
+        if header is False:
+            next(reader)
+
         for row in reader:
-            results.extend(row)
+            if append_data:
+                results.append(row)
+            else:
+                results.extend(row)
     return results
 
 
-def extract_text_from_comments(input_file, filter=False):
-    '''
+def extract_text_from_comments(input_file, filter=False, specific_subreddit=None):
+    ''' 
         Take an input file of json comment objects and parse
         out all of the text.
 
@@ -162,6 +169,8 @@ def extract_text_from_comments(input_file, filter=False):
 
         Returns text of all comments in input_file and returns
         an array.
+
+        TODO: Ensure this still works as expected
     '''
     print("Extracting text from comments...")
     file = open(input_file, 'r')
@@ -169,14 +178,17 @@ def extract_text_from_comments(input_file, filter=False):
     total_obj = 0
 
     if filter:
-        stop_words = set(stopwords.words('english'))
-        stop_words.add('source')  # 'source' is a common Reddit term that would hurt our data
-        punctuation_translator = str.maketrans('', '', string.punctuation)
+        stop_words_arr = read_csv("../Data/stopwords.csv", header=False, append_data=False)
+        stop_words_arr.append('source')
+
+        punctuation_translator = str.maketrans(' ', ' ', string.punctuation)
+        url_regex = re.compile(r'\[?\(?https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)\]?\)?')
         num_regex = re.compile(r'[0-9]+')
         whitespace_chars_regex = re.compile(r'[\n\r\t]+')
 
     text_arr = []
-    # times_arr = []
+    times_arr = []
+    sentiment_arr = []
     while True:
         line = file.readline()
 
@@ -193,36 +205,34 @@ def extract_text_from_comments(input_file, filter=False):
         body = data['body']
         # time = data['created_utc']
 
-        if filter:
-            body = body.lower()
+        subreddit = data['subreddit']
+        sentiment = data['sentiment']
 
-            body = html.unescape(body)                            # unescape HTML
-            body = re.sub(r"http\S+", "", body)                   # remove normal URLS
+        match = True
+        if specific_subreddit:
+            if subreddit != specific_subreddit:
+                match = False
 
-            # Remove all numbers from comments
-            body = num_regex.sub('', body)
+        if match:
+            if filter:
+                body = body.lower()
 
-            # Remove all punctuation from comments
-            body = body.translate(punctuation_translator)
+                # Remove all numbers from comments
+                body = url_regex.sub('', body)
+                body = num_regex.sub('', body)
 
-            # Remove all special whitespace characters
-            body = whitespace_chars_regex.sub(' ', body)
+                # Remove all punctuation from comments
+                body = body.translate(punctuation_translator)
 
-            # Remove any reoccuring whitespace
-            body = ' '.join(body.split())
+                # Remove all special whitespace characters
+                body = whitespace_chars_regex.sub(' ', body)
 
-            body = remove_stopwords_in_sentence(body, stop_words)
+                body = ' '.join([el for el in body.split(' ') if el not in stop_words_arr and len(el) > 0])
 
-        text_arr.append(body)
-        # times_arr.append(time)
+            text_arr.extend(body.split(' '))
+            times_arr.append(time)
 
-    return text_arr, []
-
-
-def remove_stopwords_in_sentence(sentence, stop_words):
-    word_tokens = word_tokenize(sentence)
-    words = [w for w in word_tokens if not w in stop_words and len(w) > 0]
-    return ' '.join(words)
+    return text_arr, times_arr, sentiment_arr
 
 
 def get_top_n_words_from_text(text_arr, replace_with_synonyms=False, n=-1):
@@ -233,6 +243,8 @@ def get_top_n_words_from_text(text_arr, replace_with_synonyms=False, n=-1):
 
         Returns top n occuring strings as an array of tuples in
         the form (string, num_occurrences, times).
+
+        TODO: Ensure this still works as expected
     '''
     start = time.perf_counter()
     num_replacements = 0
