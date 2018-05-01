@@ -1,17 +1,15 @@
 import sys, json, string, re, csv, operator, html, time
 import pprint, datetime
-# from nltk.corpus import wordnet
 import numpy as np
 from collections import Counter
 import pprint
 from random import randint
-# import nltk.data
 from nltk.corpus import stopwords
-# from nltk import SnowballStemmer
 from nltk.tokenize import word_tokenize
 from nltk.stem.wordnet import WordNetLemmatizer
 import nltk as nltk
 
+lmt = WordNetLemmatizer()
 
 class NRCReader:
     def __init__(self, NRCAddress="../Data/NRC-emotion-lexicon-wordlevel-alphabetized-v0.92.txt"):
@@ -178,7 +176,7 @@ def extract_text_from_comments(input_file, filter=False, specific_subreddit=None
     total_obj = 0
 
     if filter:
-        stop_words_arr = read_csv("../Data/stopwords.csv", header=False, append_data=False)
+        stop_words_arr = read_csv("../Data/stopwords.csv")[0]
         stop_words_arr.append('source')
 
         punctuation_translator = str.maketrans(' ', ' ', string.punctuation)
@@ -233,6 +231,48 @@ def extract_text_from_comments(input_file, filter=False, specific_subreddit=None
             times_arr.append(time)
 
     return text_arr, times_arr, sentiment_arr
+
+
+def filter_sentence():
+    body = "Ha.  But actually no!!!  \"These are $*%# ideas. My dogs and cacti are much better than you and your goddesses and cats - I 100 percent believe they're more terrible than mine.\"\n\nhttps://imright.org/yourewrong/123456789"
+
+    stop_words_arr = read_csv("../Data/stopwords.csv")[0]
+    stop_words_arr.append('source')
+    punctuation_translator = str.maketrans(' ', ' ', string.punctuation)
+    url_regex = re.compile(r'\[?\(?https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)\]?\)?')
+    num_regex = re.compile(r'[0-9]+')
+    whitespace_chars_regex = re.compile(r'[\n\r\t]+')
+
+    print("Original sentence:\n\t{}\n".format(body))
+
+    body = body.lower()
+    print("Lowercase:\n\t{}\n".format(body))
+
+    # Remove all numbers from comments
+    body = url_regex.sub('', body)
+    print("Remove URL:\n\t{}\n".format(body))
+    body = num_regex.sub('', body)
+    print("Remove numbers:\n\t{}\n".format(body))
+
+    # Remove all punctuation from comments
+    body = body.translate(punctuation_translator)
+    print("Remove punctuation:\n\t{}\n".format(body))
+
+    # Remove all special whitespace characters
+    body = whitespace_chars_regex.sub(' ', body)
+    print("Remove whitespace:\n\t{}\n".format(body))
+
+    words = []
+    for el in body.split(' '):
+    	if el not in stop_words_arr and len(el) > 0:
+    		words.append(el)
+    body = ' '.join(words)
+    print("Remove stopwards:\n\t{}\n".format(body))
+
+    body = nat_lang_sentence(body)
+    print("Lemmatized:\n\t{}\n".format(body))
+
+    print("Final sentence:\n\t{}".format(body))
 
 
 def get_top_n_words_from_text(text_arr, replace_with_synonyms=False, n=-1):

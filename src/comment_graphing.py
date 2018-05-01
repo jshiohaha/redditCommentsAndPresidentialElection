@@ -1,5 +1,6 @@
 import pprint, operator, sys, json, string
 
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -121,10 +122,12 @@ def plot_emotion_dot_chart():
         for em in emotions:
             dictionary[em].append(sum(data[em].values()))
 
+    # norm = mpl.colors.Normalize(vmin=-1.,vmax=1.)
+
     for key in dictionary.keys():
         dot_chart.add(key, dictionary[key])
 
-    dot_chart.render_to_file('../Images/Emotion/TWA-Emotions.svg')
+    dot_chart.render_to_file('../Images/Emotion/All-Emotions.svg')
 
 
 def plot_emotion_growth_pie_chart():
