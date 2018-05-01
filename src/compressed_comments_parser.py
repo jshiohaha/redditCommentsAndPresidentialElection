@@ -30,6 +30,13 @@ import csv
 '''
 
 def filter_compressed_comments_file(input_file, output_file):
+    '''
+        takes a binary input file of Reddit Comments and filters them based on time,
+        author, then subreddit (found in '../Data/PoliticalSubreddits.csv')
+
+        input_file is either All-Comments-2016-10.bz2 or All-Comments-2016-11.bz2
+        output_file is where you want the newly filtered data to be outputted
+    '''
     list_of_subreddits = create_political_subreddits_list('../Data/PoliticalSubreddits.csv')
     with open(subbreddits) as file:
         lines = file.readlines()

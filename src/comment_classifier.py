@@ -7,6 +7,10 @@ from nltk.sentiment.vader import SentimentIntensityAnalyzer
 
 
 def classify_all_comments_sentiment(input_file, output_file):
+    '''
+        calculates the sentiment of each comment in given input_file
+    '''
+
     sia = SentimentIntensityAnalyzer()
     file = open(input_file, 'r')
     filtered_file = open(output_file, 'w')
