@@ -1,19 +1,21 @@
 import sys, json, string, re, csv, operator, html, time
 import pprint, datetime
-# from nltk.corpus import wordnet
 import numpy as np
 from collections import Counter
 import pprint
 from random import randint
-# import nltk.data
 from nltk.corpus import stopwords
-# from nltk import SnowballStemmer
 from nltk.tokenize import word_tokenize
 from nltk.stem.wordnet import WordNetLemmatizer
 import nltk as nltk
 
+lmt = WordNetLemmatizer()
 
 class NRCReader:
+	'''
+	    This class converts the given text file into a data object
+	    representing the NRC Emotion Lexicon for use in emotion analysis
+	'''
     def __init__(self, NRCAddress="../Data/NRC-emotion-lexicon-wordlevel-alphabetized-v0.92.txt"):
         self.nrc_address = NRCAddress
         self.data = {}
@@ -128,6 +130,9 @@ def split_data_by_sentiment_range(input_file, output_file, type, low=-1, high=1)
 
 
 def print_data(input_file, num_lines):
+	'''
+	    Prints the first num_lines of a given input_file
+	'''
     file = open(input_file, 'r')
     total_obj = 0
 
@@ -142,6 +147,10 @@ def print_data(input_file, num_lines):
 
 
 def read_csv(input_file, header=True, append_data=True):
+    '''
+        Used to read in "../Data/stopwords.csv" for stop word
+        removal in filtering/cleaning comments
+    '''
     results = []
     with open(input_file) as csvfile:
         reader = csv.reader(csvfile)
@@ -169,8 +178,6 @@ def extract_text_from_comments(input_file, filter=False, specific_subreddit=None
 
         Returns text of all comments in input_file and returns
         an array.
-
-        TODO: Ensure this still works as expected
     '''
     print("Extracting text from comments...")
     file = open(input_file, 'r')
@@ -178,7 +185,7 @@ def extract_text_from_comments(input_file, filter=False, specific_subreddit=None
     total_obj = 0
 
     if filter:
-        stop_words_arr = read_csv("../Data/stopwords.csv", header=False, append_data=False)
+        stop_words_arr = read_csv("../Data/stopwords.csv")[0]
         stop_words_arr.append('source')
 
         punctuation_translator = str.maketrans(' ', ' ', string.punctuation)
@@ -188,7 +195,6 @@ def extract_text_from_comments(input_file, filter=False, specific_subreddit=None
 
     text_arr = []
     times_arr = []
-    sentiment_arr = []
     while True:
         line = file.readline()
 
@@ -203,7 +209,7 @@ def extract_text_from_comments(input_file, filter=False, specific_subreddit=None
         data = json.loads(line)
 
         body = data['body']
-        # time = data['created_utc']
+        time = data['created_utc']
 
         subreddit = data['subreddit']
         sentiment = data['sentiment']
@@ -217,8 +223,10 @@ def extract_text_from_comments(input_file, filter=False, specific_subreddit=None
             if filter:
                 body = body.lower()
 
-                # Remove all numbers from comments
+                # Remove all URLs from comments
                 body = url_regex.sub('', body)
+
+                # Remove all numbers from comments
                 body = num_regex.sub('', body)
 
                 # Remove all punctuation from comments
@@ -232,7 +240,56 @@ def extract_text_from_comments(input_file, filter=False, specific_subreddit=None
             text_arr.extend(body.split(' '))
             times_arr.append(time)
 
-    return text_arr, times_arr, sentiment_arr
+    return text_arr, times_arr
+
+
+def filter_sentence():
+	'''
+	    A method to show off the filtering/cleaning that is done on a
+	    comment when "filter=True" in the "extract_text_from_comments" method
+	'''
+
+    body = "Ha.  But actually no!!!  \"These are $*%# ideas. My dogs and cacti are much better than you and your goddesses and cats - I 100 percent believe they're more terrible than mine.\"\n\nhttps://imright.org/yourewrong/123456789"
+
+    stop_words_arr = read_csv("../Data/stopwords.csv")[0]
+    stop_words_arr.append('source')
+    punctuation_translator = str.maketrans(' ', ' ', string.punctuation)
+    url_regex = re.compile(r'\[?\(?https?:\/\/(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&//=]*)\]?\)?')
+    num_regex = re.compile(r'[0-9]+')
+    whitespace_chars_regex = re.compile(r'[\n\r\t]+')
+
+    print("Original sentence:\n\t{}\n".format(body))
+
+    body = body.lower()
+    print("Lowercase:\n\t{}\n".format(body))
+
+    # Remove all URLs from comments
+    body = url_regex.sub('', body)
+    print("Remove URL:\n\t{}\n".format(body))
+
+    # Remove all numbers from comments
+    body = num_regex.sub('', body)
+    print("Remove numbers:\n\t{}\n".format(body))
+
+    # Remove all punctuation from comments
+    body = body.translate(punctuation_translator)
+    print("Remove punctuation:\n\t{}\n".format(body))
+
+    # Remove all special whitespace characters
+    body = whitespace_chars_regex.sub(' ', body)
+    print("Remove whitespace:\n\t{}\n".format(body))
+
+    words = []
+    for el in body.split(' '):
+    	if el not in stop_words_arr and len(el) > 0:
+    		words.append(el)
+    body = ' '.join(words)
+    print("Remove stopwards:\n\t{}\n".format(body))
+
+    body = nat_lang_sentence(body)
+    print("Lemmatized:\n\t{}\n".format(body))
+
+    print("Final sentence:\n\t{}".format(body))
 
 
 def get_top_n_words_from_text(text_arr, replace_with_synonyms=False, n=-1):
@@ -241,10 +298,8 @@ def get_top_n_words_from_text(text_arr, replace_with_synonyms=False, n=-1):
         a dictionary sorted by the integer value representing
         how many times each unique string appears in the array.
 
-        Returns top n occuring strings as an array of tuples in
-        the form (string, num_occurrences, times).
-
-        TODO: Ensure this still works as expected
+        Returns top n occuring strings as an array of duples in
+        the form (string, num_occurrences).
     '''
     start = time.perf_counter()
     num_replacements = 0
@@ -286,8 +341,8 @@ def get_top_n_bigrams_from_text(text_arr, replace_with_synonyms=False, n=-1):
         a dictionary sorted by the integer value representing
         how many times each unique string appears in the array.
 
-        Returns top n occuring strings as an array of tuples in
-        the form (string, num_occurrences, times).
+        Returns top n occuring strings (bigrams) as an array of
+        duples in the form (string, num_occurrences).
     '''
     start = time.perf_counter()
     dictionary = dict()
@@ -378,7 +433,12 @@ def map_sentiment_to_word(x):
     }[x]
 
 
-def match_words_with_emotion(input_file, filt=False,output_file="full_words_with_count_and_emotions.json"):
+def match_words_with_emotion(input_file, filt=False,output_file="words_with_count_and_emotions.json"):
+    '''
+        Takes an input_file of comments, extracts the text (and filters, if needed),
+        then finds the NRC words and their counts throughout all comments
+    '''
+
     start = time.perf_counter()
     print("Reading input file: {}".format(input_file))
     text_arr, times_arr = extract_text_from_comments(input_file, filt)
@@ -448,8 +508,12 @@ def match_words_with_emotion(input_file, filt=False,output_file="full_words_with
     print("Created files: {}, {}\n".format(output_file, random_data_path))
 
 
-# Day of election (November 8) is days[13]
 def get_utc_days():
+	'''
+	    Gives an array of duples containg the start and end of each
+	    day in UTC time from October 26 to November 23
+	'''
+
     # First day is 1477501200 to 1477544400 (only 12 hours)
     first_day = [1477501200,1477544400]
     # Last day is 1479880800 to 1479924000 (only 12 hours)
@@ -491,9 +555,17 @@ def get_string_date_of_utc(number):
     return utc_string_date
 
 
-# days is in form [ [1477501200,1477544400] , [1479880800,1479924000] , ...]
-# days must be in order
 def grab_data_from_days(input_file, days=None):
+	'''
+	    input file should be the full dataset of comments, or
+	    some data set that has the data for the days you are looking at
+
+	    our data files for each day are all named in the same format,
+	    so this allows you to easily grab the data from each one
+
+	    days is in form [ [1477501200,1477544400] , [1479880800,1479924000] , ...]
+	    days must be in order
+	'''
     file = open(input_file, 'r')
     if days == None:
         days = get_utc_days()
@@ -522,9 +594,15 @@ def grab_data_from_days(input_file, days=None):
         date_file.close()
         print("Created file: {}".format(path))
 
-# days is in form [ [1477501200,1477544400] , [1479880800,1479924000] , ...]
-# days must be in order
+
 def grab_words_from_days(days=None):
+	'''
+	    all of our data (by day) is named in the same way, and this allows you
+	    to easily grab the words from each one
+	    
+	    days is in form [ [1477501200,1477544400] , [1479880800,1479924000] , ...]
+	    days must be in order
+	'''
     if days == None:
         days = get_utc_days()
 
@@ -618,16 +696,6 @@ def nat_lang_word(word):
 
 def nat_lang_sentence(sentence):
     new_words = list(map(nat_lang_word, sentence.split(' ')))
-    return ' '.join(new_words)
-
-
-def stem_word(word):
-    '''Word stemmer; remove unnecessary endings. E.g. 'running' becomes 'run'''
-    return st.stem(word)
-
-
-def stem_sentence(sentence):
-    new_words = list(map(stem_word, sentence.split(' ')))
     return ' '.join(new_words)
 
 
