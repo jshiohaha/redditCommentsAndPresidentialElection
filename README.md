@@ -2,11 +2,6 @@
 
 View the presentation for this project [here](http://bit.ly/2JbFA1S).
 
-##### TODO action items
-- Lemmatizer function in NLTK?
-- [TODO] 1 day before [Nov 8] -> [1478584800, 1478671200]
-- [TODO] 1 day after [Nov 10] -> [1478757600, 1478844000]
-
 ## Data Acquisition and Cleaning
 
 
@@ -70,15 +65,7 @@ Additional cleaning and filtering of the data set is described below:
 
 #### Partitioning
 
-Dates around the election, broken up into varying sizes. **Note**: All UTC stamps for dates were calculated from the date at 0:0:0 in CT. For example, the range of October 26 to November 1 would be October 26 at 0:0:0 to November 2 at 0:0:0, so we consider all comments on nov 1. Done with [Epoch Converter](https://www.epochconverter.com).
-
-- [x] 2 weeks before (WB) [Oct 26 - Nov 1] -> [1477458000, 1478062800]
-- [x] 1 WB [Nov 2 - Nov 8] -> [1478062800, 1478671200]
-- [ ] [TODO] 1 day before [Nov 8] -> [1478584800, 1478671200], Written objects: 238745
-- [x] the day of the election [Nov 9] -> [1478671200, 1478757600], Written objects: 280536
-- [ ] [TODO] 1 day after [Nov 10] -> [1478757600, 1478844000], Written objects: 167349
-- [x] 1 week after (WA) [Nov 10 - Nov 16] -> [1478757600, 1479362400]
-- [x] 2 WA [Nov 17 - Nov 23] -> [1479362400, 1479967200]
+Dates around the election, broken up into varying sizes. **Note**: All UTC stamps for dates were calculated from the date at 0:0:0 in CT. For example, the range of October 26 to November 1 would be October 26 at 0:0:0 to November 2 at 0:0:0, so we consider all comments on nov 1. Initially done with [Epoch Converter](https://www.epochconverter.com), but later wrote time conversion functions.
 
 ## Sentiment Analysis
 
@@ -171,7 +158,7 @@ From the commit logs we can easily see that the [first version](https://github.c
 
 The basic point of n-grams is that they capture the language structure from the statistical point of view, like what letter or word is likely to follow the given one. The longer the n-gram (the higher the n), the more context you have to work with. Optimum length really depends on the application – if your n-grams are too short, you may fail to capture important differences. On the other hand, if they are too long, you may fail to capture the “general knowledge” and only stick to particular cases.
 
-They are basically a set of co-occuring words within a given window and when computing the n-grams you typically move one word forward (although you can move X words forward in more advanced scenarios). For example, for the sentence "The cow jumps over the moon". If N=2 (known as bigrams), then the ngrams would be:
+They are basically a set of co-occuring words within a given window and when computing the n-grams you typically move one word forward (although you can move X words forward in more advanced scenarios). For example, for the sentence "The cow jumps over the moon". If N=2 (known as bigrams), then the bigrams would be:
 
 * the cow
 * cow jumps
@@ -186,4 +173,4 @@ They are basically a set of co-occuring words within a given window and when com
 
 [Text classification using NB](https://medium.com/@theflyingmantis/text-classification-in-nlp-naive-bayes-a606bf419f8c)
 
-[Link](https://stats.stackexchange.com/questions/33185/difference-between-naive-bayes-multinomial-naive-bayes#answer-34002)
+[Stack Exchange Explanation](https://stats.stackexchange.com/questions/33185/difference-between-naive-bayes-multinomial-naive-bayes#answer-34002)
